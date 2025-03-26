@@ -7,7 +7,28 @@ module.exports = class ToughtController {
   }
 
   static async dashboard(req, res) {
-    res.render("toughts/dashboard");
+    const userId = req.session.userId;
+
+    const user = await User.findOne({
+      where: { id: userId },
+      include: Tought,
+      plain: true,
+    });
+
+    // check if user exists
+    if (!user) {
+      res.redirect("/login");
+    }
+
+    const toughts = user.Toughts.map((result) => result.dataValues);
+
+    let emptyToughts = false
+    
+    if (toughts.length === 0) {
+      emptyToughts = true
+    }
+
+    res.render("toughts/dashboard", { toughts, emptyToughts });
   }
 
   static createTought(req, res) {
@@ -29,7 +50,24 @@ module.exports = class ToughtController {
         res.redirect("/toughts/dashboard");
       });
     } catch (err) {
-      console.log(err); 
+      console.log(err);
+    }
+  }
+
+  static async removeTought(req, res) {
+    const id = req.body.id;
+    const UserId = req.session.userId;
+
+    try {
+      await Tought.destroy({ where: { id: id, UserId: UserId } });
+
+      req.flash("message", "Pensamento removido com sucesso!");
+
+      req.session.save(() => {
+        res.redirect("/toughts/dashboard");
+      });
+    } catch (err) {
+      console.log(err);
     }
   }
 };
